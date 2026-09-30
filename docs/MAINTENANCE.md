@@ -25,7 +25,10 @@ fixtures (§5).
   Tests/NiceMailCoreTests/      XCTest: parity + core tests
     Fixtures/parity.json        committed reference outputs (see §5)
   tools/make_fixtures.py        optional: regenerates parity.json (see §5)
+  tools/make_icon.py            regenerates the app icon (see §1.1)
   Resources/Info.plist          bundle metadata used by scripts/build-app.sh
+  Resources/AppIcon.svg         the icon's vector master (generated)
+  Resources/AppIcon.icns        the icon, all sizes (generated)
   scripts/build-app.sh          builds and ad-hoc signs the .app
   sample-workspace/             a small workspace to try the app with
   docs/FILE_FORMAT.md           the workspace format specification
@@ -34,9 +37,40 @@ fixtures (§5).
 There is deliberately no `.xcodeproj`: Xcode opens `Package.swift` directly,
 and a hand-maintained project file would be one more thing to keep in sync.
 The `.app` bundle is assembled by `scripts/build-app.sh` from the SwiftPM
-release binary and `Resources/Info.plist`, plus `Resources/AppIcon.icns` once
-an icon exists (§6). When adding the icon, also add `CFBundleIconFile` =
-`AppIcon` to `Info.plist`.
+release binary, `Resources/Info.plist` and `Resources/AppIcon.icns`.
+
+### 1.1 App icon
+
+The icon is a frosted-glass envelope sealed with a smiling face, in the
+macOS 26 Liquid Glass style, on a pale "Butter" tile (cream `#FFF9DC` to
+butter yellow `#F2CB5A`) chosen to complement the yellow smiley and to look
+unlike Mail.app. The smiley is drawn from simple shapes by the script, not
+taken from any emoji font. It is built the same way as the icon of QDVC
+Bibliotheca for macOS, so the two apps look like a family.
+`tools/make_icon.py` draws it as SVG and writes `Resources/AppIcon.svg` and
+`Resources/AppIcon.icns`; both are committed, so building needs nothing extra.
+To change the design or palette, edit the constants at the top of the script
+and run `python3 tools/make_icon.py` (needs `rsvg-convert`:
+`brew install librsvg`; `--preview` also writes `build/icon-preview.png`).
+Every size in the `.icns` is rendered from the vector, not scaled down, so
+small sizes stay sharp.
+
+The geometry follows Apple's macOS icon template: an 824 × 824 tile centred
+on a 1024 × 1024 canvas (100 px transparent margin), with a 185.4 px corner,
+and a black drop shadow (28 px blur, 12 px down, 50 %). The corner uses
+Apple's *continuous-curvature* rounded rectangle: the curve UIKit draws, as
+reverse-engineered and published by PaintCode. It is not a superellipse; a
+whole-shape superellipse looks slightly too round, because it starts curving
+before Apple's corner does. macOS applies no mask to Mac app icons, so the
+shape, margin and shadow must be baked into the artwork, as the script does.
+
+The pale tile has little contrast with a light desktop, so the envelope and
+smiley carry a shadow tinted with the deep butter tone, and the smiley has a
+white ring. Keep both if you change the palette, and check the 32 px size.
+
+If Finder or the Dock keeps showing an old icon after a rebuild, that's the
+system icon cache; re-copying the app (for example
+`scripts/build-app.sh --install`) usually refreshes it.
 
 The package has no dependencies, so there is no `Package.resolved`. If one is
 ever added, commit the `Package.resolved` that SwiftPM creates, so every
@@ -223,9 +257,7 @@ The core and its tests also run on Linux with Swift 5.10 or later
 
 ## 6. Roadmap
 
-1. **App icon** — none yet. Add `Resources/AppIcon.icns` (and the
-   `CFBundleIconFile` key); `scripts/build-app.sh` already copies it when
-   present.
+1. ~~App icon~~ — done (§1.1).
 2. **Continuous integration** — a GitHub Actions workflow that runs
    `swift test` and `scripts/build-app.sh` on a macOS runner and uploads the
    bundle; the core tests could also run on a cheaper Linux runner.

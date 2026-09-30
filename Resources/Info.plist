@@ -8,6 +8,8 @@
 	<string>QDVC Nice Mail</string>
 	<key>CFBundleExecutable</key>
 	<string>QDVCNiceMail</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.qdvc.NiceMail</string>
 	<key>CFBundleInfoDictionaryVersion</key>
