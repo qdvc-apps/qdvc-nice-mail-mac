@@ -6,6 +6,8 @@ reusable **phrases**, an assembled plaintext mail **signature**, and a
 **Note to Self** writer that saves self-addressed `.eml` files. A native
 SwiftUI app for macOS 14 (Sonoma) and later.
 
+![Screenshot](docs/screenshot_qdvc_nicemac_mail.png)
+
 Your data is a plain folder of CSV and text files (the format is documented in
 [docs/FILE_FORMAT.md](docs/FILE_FORMAT.md)), shared with the Python/GTK
 edition of [QDVC Nice Mail](https://github.com/qdvc-apps/qdvc-nice-mail), so
