@@ -32,6 +32,7 @@ fixtures (§5).
   scripts/build-app.sh          builds and ad-hoc signs the .app
   sample-workspace/             a small workspace to try the app with
   docs/FILE_FORMAT.md           the workspace format specification
+  docs/HIG.md                   window layout decisions and their HIG precedents
 ```
 
 There is deliberately no `.xcodeproj`: Xcode opens `Package.swift` directly,
@@ -109,9 +110,10 @@ used from the main actor.
 | `NiceMailApp.swift` | `@main` app, single `Window` scene, app delegate (activation, ⌘F monitor) |
 | `Commands.swift` | menu-bar commands and shortcuts, including the Emoji menu |
 | `ContentView.swift` | tab switching (toolbar segmented control), the one sheet host, `TextPromptSheet`, welcome screen |
-| `EmojiTabView.swift` | the Emoji `Table`, its toolbar and context menu (`EmojiMenuItems`) |
-| `PhrasesTabView.swift` | the Phrases `Table`, toolbar, context menu, delete confirmation |
-| `SignatureTabView.swift` | the signature preview and its toolbar |
+| `ToolbarControls.swift` | shared controls: icon-only Copy and New Ref toolbar buttons, the `ListControlBar` (+ − under a list) and the `OptionBar` |
+| `EmojiTabView.swift` | the Emoji `Table`, its list bar, toolbar and context menu (`EmojiMenuItems`) |
+| `PhrasesTabView.swift` | the Phrases `Table`, list bar, toolbar, context menu, delete confirmation |
+| `SignatureTabView.swift` | the signature preview, its option bar and toolbar |
 | `NoteTabView.swift` | the Note to Self form and green callout |
 | `TextViews.swift` | `NSTextView` wrappers: `SignaturePreview` (with `CopyAllTextView`) and `PlainTextEditor` |
 | `AppModel.swift` | all window state and actions |
@@ -121,14 +123,15 @@ used from the main actor.
 `AppModel` is the single `@Observable` object behind the window. Every action
 that changes the workspace goes through it, then calls the matching
 `refreshEmojiRows()`, `refreshPhraseRows()` or `refreshSignature()`, so the
-table rows, window subtitle and preview stay consistent. Rows are value
+table rows and preview stay consistent. Rows are value
 snapshots (`EmojiRow`, `Phrase`), which keeps `Table` diffing cheap.
 
-Each tab view adds its own toolbar items (and, on Emoji and Phrases, its own
-`.searchable` field), so the toolbar changes with the tab, like the Python
+Each tab view adds its own few toolbar items (and, on Emoji and Phrases, its
+own `.searchable` field), so the toolbar changes with the tab, like the Python
 edition's per-tab toolbar. The centred segmented control belongs to
-`ContentView`. Toolbar buttons use `.labelStyle(.titleAndIcon)`, matching the
-Python edition's default of labels beside icons.
+`ContentView`. The layout rules (what goes in the toolbar, in the list bars
+and in the option bar; icon-only buttons; no title or status text) are in
+[HIG.md](HIG.md); follow them when adding controls.
 
 ---
 
@@ -146,13 +149,16 @@ Python edition's default of labels beside icons.
 - **Writes happen immediately.** Every favourite or phrase change writes its
   file at once (atomically). There is no unsaved state and nothing to flush on
   quit.
-- **Message refs.** The Signature and Note to Self refs are independent. New
-  Ref and Refresh on those tabs make a new one; Send makes a new note ref
-  after saving. Refs come from `SystemRandomNumberGenerator`
+- **Message refs.** The Signature and Note to Self refs are independent. On
+  those tabs, the New Ref button is View → Refresh (⌘R), which re-reads the
+  workspace and makes a new ref; Send makes a new note ref after saving. Refs come from `SystemRandomNumberGenerator`
   (cryptographically secure on macOS).
 - **Signature copy.** ⌘C on the Signature tab copies the whole signature when
   nothing is selected (`CopyAllTextView`), so the preview must stay a
   `CopyAllTextView`, and it takes focus when the tab opens.
+- **Copy feedback.** Every copy of an emoji, phrase or the signature goes
+  through `AppModel.noteCopied()`, which shows the checkmark on the Copy
+  toolbar button (HIG.md §4). New copy paths must call it too.
 - **⌘F** is caught by a local key monitor in `AppDelegate` only on the Emoji
   and Phrases tabs (and not while a sheet is open), and moves focus to the
   toolbar search field. Elsewhere it passes through, so the note body and the
@@ -189,9 +195,12 @@ Python edition's default of labels beside icons.
   Python YAML config. The toolbar-style and GTK-backend preferences have no
   Mac equivalent. The signature font is a family and size instead of a Pango
   font description.
-- **Toolbar and menus** follow macOS conventions: tabs in a centred segmented
-  control (⌘1–⌘4 instead of Alt+1–4), New Message Ref on ⇧⌘R instead of F5,
-  and an Emoji menu for the favourite actions.
+- **Window layout and menus** follow macOS conventions (see
+  [HIG.md](HIG.md)): tabs in a centred segmented control (⌘1–⌘4 instead of
+  Alt+1–4), icon-only toolbar buttons, list buttons in a bar under each list,
+  the Signature options as checkboxes above the preview, no status bar (a
+  checkmark on the Copy button confirms copies), New Ref on ⌘R (Refresh)
+  instead of F5, and an Emoji menu for the favourite actions.
 
 Two quirks are reproduced for parity rather than fixed. They are worth fixing
 in both editions together, then regenerating the fixture: a phrase whose first
@@ -261,11 +270,14 @@ The core and its tests also run on Linux with Swift 5.10 or later
 2. **Continuous integration** — a GitHub Actions workflow that runs
    `swift test` and `scripts/build-app.sh` on a macOS runner and uploads the
    bundle; the core tests could also run on a cheaper Linux runner.
-3. **Open in Mail after Send** — offer to open the saved `.eml` (or reveal it
-   in Finder) from the status message.
+3. **Open in Mail after Send** — offer to open the saved `.eml` in Mail (or
+   reveal it in Finder) straight after saving, for example as an option in
+   the Save panel or a small sheet; there is no status bar to put it in.
 4. **Drag and drop out** — drag an emoji or phrase from its table into another
    app (`Transferable` rows).
 5. **Live refresh** with FSEvents, so edits made in a text editor or by a sync
    client appear without ⌘R.
-6. **Menu bar extra** — a small favourites and phrases picker available from
+6. **Emoji inspector** — a right-hand details panel for the selected emoji
+   (name, code points, label, favourite); see HIG.md §3.
+7. **Menu bar extra** — a small favourites and phrases picker available from
    the menu bar while writing in another app.

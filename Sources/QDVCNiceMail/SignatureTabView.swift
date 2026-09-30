@@ -2,8 +2,11 @@ import AppKit
 import SwiftUI
 import NiceMailCore
 
-/// The Signature tab: a read-only preview of the assembled signature. ⌘C
-/// copies the selection, or the whole signature when nothing is selected.
+/// The Signature tab: a read-only preview of the assembled signature, under a
+/// slim bar with the Disclaimer and Ref Only checkboxes (like Preview's
+/// Markup toolbar). The profile picker, New Ref and Copy are in the toolbar
+/// (docs/HIG.md §3). ⌘C copies the selection, or the whole signature when
+/// nothing is selected.
 struct SignatureTabView: View {
     @Environment(AppModel.self) private var model
     @AppStorage(Prefs.Key.signatureFontFamily) private var fontFamily = ""
@@ -11,9 +14,21 @@ struct SignatureTabView: View {
 
     var body: some View {
         @Bindable var model = model
-        SignaturePreview(text: model.signatureText,
-                         font: Prefs.signatureFont(family: fontFamily, size: fontSize)) {
-            model.flash("Signature copied")
+        VStack(spacing: 0) {
+            OptionBar {
+                Toggle("Include disclaimer", isOn: $model.includeDisclaimer)
+                    .toggleStyle(.checkbox)
+                    .disabled(model.refOnly)
+                    .help(model.refOnly ? "Not used when Ref only is on"
+                                        : "Add the disclaimer from mailsigs/disclaimer.txt")
+                Toggle("Ref only", isOn: $model.refOnly)
+                    .toggleStyle(.checkbox)
+                    .help("Only the m-dash and the message ref line")
+            }
+            SignaturePreview(text: model.signatureText,
+                             font: Prefs.signatureFont(family: fontFamily, size: fontSize)) {
+                model.noteCopied()
+            }
         }
         .onChange(of: model.profileName) { model.signatureOptionsChanged() }
         .onChange(of: model.includeDisclaimer) { model.signatureOptionsChanged() }
@@ -30,36 +45,10 @@ struct SignatureTabView: View {
                 .help("The profile file (in mailsigs/profiles) that follows the m-dash")
             }
             ToolbarItemGroup(placement: .primaryAction) {
-                Toggle(isOn: $model.includeDisclaimer) {
-                    Label("Disclaimer", systemImage: "text.badge.checkmark")
-                }
-                .toggleStyle(.button)
-                .labelStyle(.titleAndIcon)
-                .help(model.refOnly ? "Not used in Ref Only mode" : "Include the disclaimer")
-                .disabled(model.refOnly)
-
-                Toggle(isOn: $model.refOnly) {
-                    Label("Ref Only", systemImage: "number")
-                }
-                .toggleStyle(.button)
-                .labelStyle(.titleAndIcon)
-                .help("Only the m-dash and the message ref line")
-
-                Button {
-                    model.newMessageRef()
-                } label: {
-                    Label("New Ref", systemImage: "arrow.clockwise")
-                }
-                .labelStyle(.titleAndIcon)
-                .help("Make a new message ref (\u{21E7}\u{2318}R)")
-
-                Button {
+                NewRefToolbarButton(help: "New message ref (\u{2318}R)")
+                CopyToolbarButton(help: "Copy the whole signature (\u{21E7}\u{2318}C)") {
                     model.copySignature()
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
                 }
-                .labelStyle(.titleAndIcon)
-                .help("Copy the whole signature (\u{21E7}\u{2318}C)")
             }
         }
     }

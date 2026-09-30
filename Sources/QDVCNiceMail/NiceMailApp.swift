@@ -11,13 +11,17 @@ struct NiceMailApp: App {
         Window("QDVC Nice Mail", id: "main") {
             ContentView()
                 .environment(model)
-                .frame(minWidth: 820, minHeight: 480)
+                .frame(minWidth: 640, minHeight: 420)
                 .onAppear {
                     appDelegate.model = model
                     model.startUp()
                 }
         }
         .defaultSize(width: 1040, height: 660)
+        // No window title in the toolbar (as in Calendar), leaving room for the
+        // tabs and actions. The title still names the window in the Window
+        // menu, Mission Control and VoiceOver (docs/HIG.md §2).
+        .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             NiceMailCommands(model: model)
         }

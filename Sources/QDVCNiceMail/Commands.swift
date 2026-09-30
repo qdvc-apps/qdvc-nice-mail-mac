@@ -68,12 +68,11 @@ struct NiceMailCommands: Commands {
                     .disabled(model.workspace == nil)
             }
             Divider()
+            // On the Signature and Note to Self tabs this also makes a new
+            // message ref, so it doubles as their New Ref button.
             Button("Refresh") { model.refresh() }
                 .keyboardShortcut("r")
                 .disabled(model.workspace == nil)
-            Button("New Message Ref") { model.newMessageRef() }
-                .keyboardShortcut("r", modifiers: [.command, .shift])
-                .disabled(model.workspace == nil || !model.currentTab.hasMessageRef)
             Divider()
         }
 

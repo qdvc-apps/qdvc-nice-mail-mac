@@ -15,37 +15,44 @@ edition to use this one.
 ## What it does
 
 The window has four tabs, switched with the segmented control in the toolbar
-(⌘1–⌘4), as in Activity Monitor. Each tab brings its own toolbar buttons.
+(⌘1–⌘4), as in Activity Monitor. The toolbar keeps to each tab's main
+actions, as icons; buttons that manage a list sit in a bar under it, and the
+Signature tab's options sit in a slim bar above the preview. The window works
+comfortably at half the width of a laptop screen. The layout is explained in
+[docs/HIG.md](docs/HIG.md).
 
 - **Emoji** — a table of emoji (symbol, name, and your optional user label).
   **Show** switches between your *Favourites* (in your order) and *All Emoji*.
   Search (⌘F) matches the name, id or your label. Double-click a row, press
-  ⌘C, or use **Copy** to copy the emoji, with your skin tone applied
-  (Settings, ⌘,). Right-click to add or remove a favourite, set a user label,
-  or move it up or down (also in the **Emoji** menu, ⌥⌘↑ / ⌥⌘↓). Emoji that
-  aren't in the list, such as many multi-part emoji like ❤️‍🩹, can be pasted in
-  with **Add Custom**; they are saved to your favourites and also listed under
-  *All Emoji*.
-- **Phrases** — your phrases in alphabetical order, with search, **Add** (⌘N),
-  **Edit** and **Delete** (⌫, with confirmation). Double-click, ⌘C or **Copy**
-  copies the selected phrase.
+  ⌘C, or click the Copy button to copy the emoji, with your skin tone applied
+  (Settings, ⌘,); the button shows a checkmark to confirm. Right-click to add
+  or remove a favourite, set a user label, or move it up or down (also with
+  the **↑ ↓** buttons under the list and in the **Emoji** menu, ⌥⌘↑ / ⌥⌘↓).
+  Emoji that aren't in the list, such as many multi-part emoji like ❤️‍🩹, can
+  be pasted in with the **+** button under the list; they are saved to your
+  favourites and also listed under *All Emoji*.
+- **Phrases** — your phrases in alphabetical order, with search. The **+**,
+  **−** and **✎** buttons under the list add (⌘N), delete (⌫, with
+  confirmation) and edit a phrase. Double-click, ⌘C or the Copy button copies
+  the selected phrase.
 - **Signature** — the assembled plaintext signature (see below). Pick a
-  **profile**, toggle the **Disclaimer**, or turn on **Ref Only** to keep just
-  the m-dash and the message ref line. **New Ref** (⇧⌘R) makes a fresh message
-  ref. ⌘C copies the selection, or the whole signature when nothing is
-  selected; **Copy** always copies the whole signature. Your profile,
-  Disclaimer and Ref Only choices are remembered.
+  **profile** in the toolbar; above the preview, tick **Include disclaimer**,
+  or **Ref only** to keep just the m-dash and the message ref line. The New
+  Ref button (⌘R) makes a fresh message ref. ⌘C copies the selection, or the
+  whole signature when nothing is selected; the Copy button always copies the
+  whole signature. Your profile and checkbox choices are remembered.
 - **Note to Self** — a **From / To** address (remembered), a **subject** and a
   plain-text **body**. A green callout shows the message ref the note will
-  carry. **Send** (⌘S) saves a self-addressed `.eml` file (From and To are the
+  carry. **Send** (the paper plane, ⌘S) saves a self-addressed `.eml` file (From and To are the
   same address, dated now) whose body is your text followed by the m-dash and
   message-ref trailer; open it in Mail to send it. The default file name is
   `yyyy-mm-dd-message-ref-<ref>.eml`. After saving, the subject and body are
-  cleared and a new message ref is made. The note's ref is independent of the
-  Signature tab's.
+  cleared and a new message ref is made; the New Ref button (⌘R) also makes
+  one. The note's ref is independent of the Signature tab's.
 
 **View → Refresh** (⌘R) re-reads the workspace from disk, and on the Signature
-and Note to Self tabs also makes a new message ref. **Edit → Copy from Current
+and Note to Self tabs also makes a new message ref (so it is the same command
+as their New Ref buttons). **Edit → Copy from Current
 Tab** (⇧⌘C) copies the selected emoji or phrase, or the whole signature,
 wherever the keyboard focus is.
 
@@ -136,7 +143,7 @@ because a bare executable has no bundle to carry it.
   [docs/FILE_FORMAT.md](docs/FILE_FORMAT.md). Every change is written to disk
   straight away.
 - Preferences and remembered choices (skin tone, signature font, profile,
-  toggles, the Note to Self address, recent workspaces): the standard macOS
+  checkboxes, the Note to Self address, recent workspaces): the standard macOS
   defaults domain (`defaults read org.qdvc.NiceMail`).
 - Saved notes: wherever you choose in the Save panel.
 
@@ -154,8 +161,7 @@ because a bare executable has no bundle to carry it.
 | ⌘D | Add to / remove from favourites |
 | ⌘L | Set a favourite's user label |
 | ⌥⌘↑ / ⌥⌘↓ | Move a favourite up / down |
-| ⌘R | Refresh (and a new message ref on Signature and Note to Self) |
-| ⇧⌘R | New message ref |
+| ⌘R | Refresh; on Signature and Note to Self, a new message ref |
 | ⌘S | Send the note to self (save the `.eml`) |
 | ⌘, | Settings |
 | Double-click a row | Copy it |
@@ -164,6 +170,9 @@ because a bare executable has no bundle to carry it.
 
 - **[docs/FILE_FORMAT.md](docs/FILE_FORMAT.md)** — the workspace format: folder
   layout, the CSV files, ids, signature and note formats.
+- **[docs/HIG.md](docs/HIG.md)** — the window layout and its precedents in
+  Apple's Human Interface Guidelines and apps: navigation, toolbar, list and
+  option bars, symbols, feedback and shortcuts.
 - **[docs/MAINTENANCE.md](docs/MAINTENANCE.md)** — architecture, modules,
   behaviour to preserve, deliberate differences from the Python edition,
   tests, and the roadmap.

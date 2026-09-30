@@ -41,21 +41,13 @@ struct NoteTabView: View {
         .onChange(of: model.noteAddress) { model.noteAddressChanged() }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                NewRefToolbarButton(help: "New message ref for this note (\u{2318}R)")
                 Button {
                     model.sendNote()
                 } label: {
-                    Label("Send", systemImage: "square.and.arrow.down")
+                    Label("Send", systemImage: "paperplane")
                 }
-                .labelStyle(.titleAndIcon)
-                .help("Save the note as an .eml file to send to yourself (\u{2318}S)")
-
-                Button {
-                    model.newMessageRef()
-                } label: {
-                    Label("New Ref", systemImage: "arrow.clockwise")
-                }
-                .labelStyle(.titleAndIcon)
-                .help("Make a new message ref for this note (\u{21E7}\u{2318}R)")
+                .help("Send: save the note as an .eml file to open in Mail and send to yourself (\u{2318}S)")
             }
         }
     }

@@ -3,13 +3,60 @@ import SwiftUI
 import NiceMailCore
 
 /// The Emoji tab: favourites (in your order) or every emoji, with search,
-/// labels and skin tones. Double-click or ⌘C copies the selected emoji.
+/// labels and skin tones. Double-click or ⌘C copies the selected emoji. Add
+/// Custom and Move Up/Down sit in the button bar under the table; Copy is
+/// in the toolbar (docs/HIG.md §3).
 struct EmojiTabView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         @Bindable var model = model
-        Table(model.emojiRows, selection: $model.selectedEmojiID) {
+        VStack(spacing: 0) {
+            table
+            ListControlBar {
+                ListBarButton("Add Custom Emoji", systemImage: "plus",
+                              help: "Add a pasted emoji to your favourites, such as one that isn\u{2019}t in the list") {
+                    model.beginAddCustomEmoji()
+                }
+                ListBarSeparator()
+                ListBarButton("Move Up", systemImage: "arrow.up",
+                              help: "Move the selected favourite up (\u{2325}\u{2318}\u{2191})") {
+                    model.moveFavourite(model.selectedEmojiID, by: -1)
+                }
+                .disabled(!model.canMove(model.selectedEmojiID, by: -1))
+                ListBarButton("Move Down", systemImage: "arrow.down",
+                              help: "Move the selected favourite down (\u{2325}\u{2318}\u{2193})") {
+                    model.moveFavourite(model.selectedEmojiID, by: 1)
+                }
+                .disabled(!model.canMove(model.selectedEmojiID, by: 1))
+            }
+        }
+        .searchable(text: $model.emojiQuery, placement: .toolbar, prompt: "Name, description or label")
+        .onChange(of: model.emojiQuery) { model.refreshEmojiRows() }
+        .onChange(of: model.emojiBlock) { model.refreshEmojiRows() }
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Picker("Show", selection: $model.emojiBlock) {
+                    ForEach(EmojiBlock.allCases) { block in
+                        Text(block.title).tag(block)
+                    }
+                }
+                .pickerStyle(.menu)
+                .fixedSize()
+                .help("Show your favourites, or every emoji")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                CopyToolbarButton(help: "Copy the selected emoji (\u{2318}C)",
+                                  disabled: model.selectedEmojiID == nil) {
+                    model.copyEmoji(model.selectedEmojiID)
+                }
+            }
+        }
+    }
+
+    private var table: some View {
+        @Bindable var model = model
+        return Table(model.emojiRows, selection: $model.selectedEmojiID) {
             TableColumn("Emoji") { row in
                 Text(row.symbol)
                     .font(.system(size: 20))
@@ -40,7 +87,7 @@ struct EmojiTabView: View {
         }
         .onCopyCommand {
             guard let row = model.selectedEmoji else { return [] }
-            model.flash("Copied \(row.symbol)")
+            model.noteCopied()
             return [NSItemProvider(object: row.symbol as NSString)]
         }
         .overlay {
@@ -51,57 +98,6 @@ struct EmojiTabView: View {
                     ContentUnavailableView("No Favourites", systemImage: "star",
                                            description: Text("Choose All Emoji, then right-click an emoji and choose Add to Favourites."))
                 }
-            }
-        }
-        .searchable(text: $model.emojiQuery, placement: .toolbar, prompt: "Name, description or label")
-        .onChange(of: model.emojiQuery) { model.refreshEmojiRows() }
-        .onChange(of: model.emojiBlock) { model.refreshEmojiRows() }
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Picker("Show", selection: $model.emojiBlock) {
-                    ForEach(EmojiBlock.allCases) { block in
-                        Text(block.title).tag(block)
-                    }
-                }
-                .pickerStyle(.menu)
-                .fixedSize()
-                .help("Show your favourites, or every emoji")
-            }
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    model.beginAddCustomEmoji()
-                } label: {
-                    Label("Add Custom", systemImage: "plus.square.on.square")
-                }
-                .labelStyle(.titleAndIcon)
-                .help("Add a pasted emoji to your favourites, such as one that isn\u{2019}t in the list")
-
-                Button {
-                    model.moveFavourite(model.selectedEmojiID, by: -1)
-                } label: {
-                    Label("Move Up", systemImage: "arrow.up")
-                }
-                .labelStyle(.titleAndIcon)
-                .help("Move the selected favourite up (\u{2325}\u{2318}\u{2191})")
-                .disabled(!model.canMove(model.selectedEmojiID, by: -1))
-
-                Button {
-                    model.moveFavourite(model.selectedEmojiID, by: 1)
-                } label: {
-                    Label("Move Down", systemImage: "arrow.down")
-                }
-                .labelStyle(.titleAndIcon)
-                .help("Move the selected favourite down (\u{2325}\u{2318}\u{2193})")
-                .disabled(!model.canMove(model.selectedEmojiID, by: 1))
-
-                Button {
-                    model.copyEmoji(model.selectedEmojiID)
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-                .labelStyle(.titleAndIcon)
-                .help("Copy the selected emoji (\u{2318}C)")
-                .disabled(model.selectedEmojiID == nil)
             }
         }
     }

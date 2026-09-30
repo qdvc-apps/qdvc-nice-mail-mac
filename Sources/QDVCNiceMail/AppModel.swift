@@ -112,34 +112,17 @@ final class AppModel {
     /// Bumped when the note is cleared, so the body editor resets its undo.
     private(set) var noteGeneration = 0
 
-    /// A short-lived message shown in the window subtitle.
-    private(set) var statusMessage: String?
-    @ObservationIgnored private var statusTask: Task<Void, Never>?
+    /// True for a moment after anything is copied: the toolbar's Copy button
+    /// shows a checkmark instead of its usual icon (docs/HIG.md §4).
+    private(set) var justCopied = false
+    @ObservationIgnored private var copiedTask: Task<Void, Never>?
 
     // MARK: - Derived
 
+    /// The window title. It isn't shown in the toolbar (docs/HIG.md §2), but
+    /// it names the window in the Window menu, Mission Control and VoiceOver.
     var windowTitle: String {
         workspace?.root.lastPathComponent ?? "QDVC Nice Mail"
-    }
-
-    var statusLine: String {
-        if let statusMessage { return statusMessage }
-        guard let ws = workspace else { return "" }
-        func counted(_ shown: Int, _ total: Int, _ noun: String) -> String {
-            shown == total ? "\(total) \(noun)" : "\(shown) of \(total) \(noun)"
-        }
-        switch currentTab {
-        case .emoji:
-            let total = emojiBlock == .favourites ? ws.favouriteEmoji().count
-                                                  : ws.customFavourites().count + catalogue.all.count
-            return counted(emojiRows.count, total, emojiBlock == .favourites ? "favourites" : "emoji")
-        case .phrases:
-            return counted(phraseRows.count, ws.phrases.count, "phrases")
-        case .signature:
-            return refOnly ? "Signature ready (ref only)" : "Signature ready"
-        case .note:
-            return "Message ref. \(noteRef)"
-        }
     }
 
     var selectedEmoji: EmojiRow? {
@@ -224,7 +207,6 @@ final class AppModel {
         selectedPhraseID = nil
         refreshProfiles()
         refreshAll()
-        flash("Opened \((path as NSString).abbreviatingWithTildeInPath)")
     }
 
     func closeWorkspace() {
@@ -252,18 +234,15 @@ final class AppModel {
         Platform.revealInFinder(ws.root)
     }
 
-    /// View → Refresh: re-read the workspace; on the Signature and Note to
-    /// Self tabs, also start a new message ref (as in the Python edition).
+    /// View → Refresh (⌘R): re-read the workspace; on the Signature and Note
+    /// to Self tabs, also start a new message ref (as in the Python edition).
+    /// Those tabs' New Ref toolbar buttons are this same command.
     func refresh() {
         guard let ws = workspace else { return }
         ws.scan()
         refreshProfiles()
         refreshAll()
-        if currentTab.hasMessageRef {
-            newMessageRef()
-        } else {
-            flash("Reloaded from disk")
-        }
+        if currentTab.hasMessageRef { newMessageRef() }
     }
 
     private func refreshAll() {
@@ -313,13 +292,13 @@ final class AppModel {
     func copyEmoji(_ id: String?) {
         guard let row = emojiRows.first(where: { $0.id == id }) else { return }
         Platform.copy(row.symbol)
-        flash("Copied \(row.symbol)")
+        noteCopied()
     }
 
     func addFavourite(_ id: String?) {
         guard let id else { return }
         perform("add the favourite") { ws in
-            if try ws.addFavourite(id) { flash("Added to Favourites") }
+            _ = try ws.addFavourite(id)
         }
         refreshEmojiRows()
     }
@@ -327,7 +306,7 @@ final class AppModel {
     func removeFavourite(_ id: String?) {
         guard let id else { return }
         perform("remove the favourite") { ws in
-            if try ws.removeFavourite(id) { flash("Removed from Favourites") }
+            _ = try ws.removeFavourite(id)
         }
         refreshEmojiRows()
     }
@@ -354,7 +333,6 @@ final class AppModel {
             activeSheet = nil
             refreshEmojiRows()
             selectedEmojiID = id
-            flash("Added custom emoji \(glyph.trimmed) to Favourites")
         } catch {
             return error.localizedDescription
         }
@@ -371,7 +349,6 @@ final class AppModel {
         perform("set the label") { ws in try ws.setFavouriteLabel(id, label) }
         refreshEmojiRows()
         selectedEmojiID = id
-        flash(label.trimmed.isEmpty ? "Label cleared" : "Label updated")
     }
 
     // MARK: - Phrases tab
@@ -403,7 +380,7 @@ final class AppModel {
     func copyPhrase(_ id: String?) {
         guard let phrase = phraseRows.first(where: { $0.id == id }) else { return }
         Platform.copy(phrase.text)
-        flash("Phrase copied")
+        noteCopied()
     }
 
     func beginAddPhrase() {
@@ -417,10 +394,7 @@ final class AppModel {
         var added: Phrase?
         perform("add the phrase") { ws in added = try ws.addPhrase(text) }
         refreshPhraseRows()
-        if let added {
-            selectedPhraseID = added.id
-            flash("Phrase added")
-        }
+        if let added { selectedPhraseID = added.id }
     }
 
     func beginEditPhrase(_ id: String?) {
@@ -434,7 +408,6 @@ final class AppModel {
         perform("save the phrase") { ws in try ws.editPhrase(id, text: text) }
         refreshPhraseRows()
         selectedPhraseID = id
-        flash("Phrase updated")
     }
 
     func phraseText(_ id: String) -> String {
@@ -449,7 +422,6 @@ final class AppModel {
         phrasePendingDeletion = nil
         perform("delete the phrase") { ws in try ws.deletePhrase(id) }
         refreshPhraseRows()
-        flash("Phrase deleted")
     }
 
     // MARK: - Signature tab
@@ -482,19 +454,17 @@ final class AppModel {
     func copySignature() {
         guard workspace != nil else { return }
         Platform.copy(signatureText)
-        flash("Signature copied")
+        noteCopied()
     }
 
-    /// New Ref for the current tab (the two refs are independent).
-    func newMessageRef() {
+    /// A new message ref for the current tab (the two refs are independent).
+    private func newMessageRef() {
         switch currentTab {
         case .signature:
             signatureRef = Naming.generateMessageRef()
             refreshSignature()
-            flash("New message ref: \(signatureRef)")
         case .note:
             noteRef = Naming.generateMessageRef()
-            flash("New message ref: \(noteRef)")
         default:
             break
         }
@@ -529,7 +499,6 @@ final class AppModel {
         noteBody = ""
         noteGeneration += 1
         noteRef = Naming.generateMessageRef()
-        flash("Saved note to \((url.path as NSString).abbreviatingWithTildeInPath)")
     }
 
     // MARK: - Copy
@@ -554,15 +523,17 @@ final class AppModel {
         }
     }
 
-    // MARK: - Status
+    // MARK: - Copy feedback
 
-    func flash(_ message: String) {
-        statusMessage = message
-        statusTask?.cancel()
-        statusTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(4))
+    /// Show the checkmark on the Copy button for a moment. Called for every
+    /// copy, whether from the button, ⌘C, a double-click or a menu.
+    func noteCopied() {
+        justCopied = true
+        copiedTask?.cancel()
+        copiedTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.5))
             guard !Task.isCancelled else { return }
-            self?.statusMessage = nil
+            self?.justCopied = false
         }
     }
 }

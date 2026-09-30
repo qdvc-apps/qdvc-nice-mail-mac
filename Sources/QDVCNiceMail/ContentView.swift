@@ -1,11 +1,12 @@
 import AppKit
 import SwiftUI
 
-/// The main window. As in Activity Monitor, a segmented control centred in
-/// the toolbar switches tabs (⌘1–⌘4). Each tab adds its own toolbar items and,
-/// for Emoji and Phrases, a search field, so the toolbar changes with the tab
-/// the way the Python edition's per-tab toolbar does. The welcome screen
-/// shows when no workspace is open.
+/// The main window. As in Activity Monitor, Clock and Calendar, a segmented
+/// control centred in the toolbar switches tabs (⌘1–⌘4). Each tab adds a
+/// few toolbar items of its own (a picker at the leading edge, icon-only
+/// actions and, for Emoji and Phrases, a search field at the trailing edge)
+/// and keeps its other controls in the content; see docs/HIG.md. The welcome
+/// screen shows when no workspace is open.
 struct ContentView: View {
     @Environment(AppModel.self) private var model
 
@@ -41,8 +42,9 @@ struct ContentView: View {
                 }
             }
         }
+        // Names the window in the Window menu, Mission Control and VoiceOver;
+        // the toolbar doesn't show it (see NiceMailApp and docs/HIG.md §2).
         .navigationTitle(model.windowTitle)
-        .navigationSubtitle(model.statusLine)
         .sheet(item: $model.activeSheet) { sheet in
             SheetContent(sheet: sheet)
                 .environment(model)
